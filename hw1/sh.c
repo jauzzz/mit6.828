@@ -44,6 +44,49 @@ int fork1(void); // Fork but exits on failure.
 struct cmd *parsecmd(char *);
 
 // Execute cmd.  Never returns.
+int isexists(char *fname)
+{
+    if (access(fname, F_OK) != -1)
+    {
+        // file exists
+        return 1;
+    }
+    else
+    {
+        // file doesn't exist
+        return 0;
+    }
+}
+
+char *concatpath(char *dirname, char *pathname)
+{
+    char *filepath = (char *)malloc(strlen(dirname) + strlen(pathname));
+    strcpy(filepath, dirname);
+    strcat(filepath, pathname);
+
+    return filepath;
+}
+
+char *getpath(char *pathname)
+{
+    int i, len;
+    char *filepath;
+    char *path[] = {"/bin/", "/usr/bin/"};
+
+    len = sizeof(path) / sizeof(path[0]);
+    for (i = 0; i < len; i++)
+    {
+        filepath = concatpath(path[i], pathname);
+        if (isexists(filepath) == 1)
+        {
+            return filepath;
+        }      
+    }
+
+    fprintf(stderr, "file does not exists\n");
+    exit(0);
+}
+
 void runcmd(struct cmd *cmd)
 {
     int p[2], r;
@@ -64,22 +107,48 @@ void runcmd(struct cmd *cmd)
         ecmd = (struct execcmd *)cmd;
         if (ecmd->argv[0] == 0)
             exit(0);
-        fprintf(stderr, "exec not implemented\n");
+
+        // fprintf(stderr, "exec not implemented\n");
         // Your code here ...
+        execv(getpath(ecmd->argv[0]), ecmd->argv);
         break;
 
     case '>':
     case '<':
         rcmd = (struct redircmd *)cmd;
-        fprintf(stderr, "redir not implemented\n");
+        // fprintf(stderr, "redir not implemented\n");
+        close(rcmd->fd);
+        if (open(rcmd->file, rcmd->mode, S_IRWXU) < 0)
+        {
+            fprintf(stderr, "Unable to open file: %s\n", rcmd->file);
+            exit(0);
+        }
         // Your code here ...
         runcmd(rcmd->cmd);
         break;
 
     case '|':
         pcmd = (struct pipecmd *)cmd;
-        fprintf(stderr, "pipe not implemented\n");
-        // Your code here ...
+        // fprintf(stderr, "pipe not implemented\n");
+        int p[2];
+
+        pipe(p);
+        if (fork1() == 0){
+            close(0);
+            dup(p[0]);
+            close(p[0]);
+            close(p[1]);
+            runcmd(pcmd->right);
+        }
+        else{
+            close(1);
+            dup(p[1]);
+            close(p[0]);
+            close(p[1]);
+            runcmd(pcmd->left);            
+        }
+
+        // Your code here ...        
         break;
     }
     exit(0);

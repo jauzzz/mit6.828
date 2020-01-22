@@ -43,26 +43,6 @@ struct pipecmd
 int fork1(void); // Fork but exits on failure.
 struct cmd *parsecmd(char *);
 
-char *PATH[] = {
-    "",
-    "/bin/",
-    "/usr/bin/",
-};
-
-int myexecv(char **argv)
-{
-    int npath = sizeof(PATH) / sizeof(char *), i;
-    for (i = 0; i < npath; i++)
-    {
-        char path[128] = {0};
-        // unsafe here
-        strcpy(path, PATH[i]);
-        strcat(path, argv[0]);
-        execv(path, argv);
-    }
-    return -1;
-}
-
 // Execute cmd.  Never returns.
 void runcmd(struct cmd *cmd)
 {
@@ -84,54 +64,22 @@ void runcmd(struct cmd *cmd)
         ecmd = (struct execcmd *)cmd;
         if (ecmd->argv[0] == 0)
             exit(0);
-        // fprintf(stderr, "exec not implemented\n");
+        fprintf(stderr, "exec not implemented\n");
         // Your code here ...
-        // Path is a list
-        if (myexecv(ecmd->argv) < 0)
-        {
-            fprintf(stderr, "%s : Command not found\n", ecmd->argv[0]);
-        }
         break;
 
     case '>':
     case '<':
         rcmd = (struct redircmd *)cmd;
-        // fprintf(stderr, "redir not implemented\n");
+        fprintf(stderr, "redir not implemented\n");
         // Your code here ...
-        // printf("type is %d, file is %s, mode is %d, fd is %d\n", rcmd->type, rcmd->file, rcmd->mode, rcmd->fd);
-        close(rcmd->fd);
-        if (open(rcmd->file, rcmd->mode, S_IRWXU) < 0)
-        {
-            fprintf(stderr, "Unable to open file: %s\n", rcmd->file);
-            exit(0);
-        }
         runcmd(rcmd->cmd);
         break;
 
     case '|':
         pcmd = (struct pipecmd *)cmd;
-        // fprintf(stderr, "pipe not implemented\n");
+        fprintf(stderr, "pipe not implemented\n");
         // Your code here ...
-        pipe(p);
-
-        if (fork1() == 0)
-        {
-            printf("read end");
-            close(0);
-            dup(p[0]);
-            close(p[0]);
-            close(p[1]);
-            runcmd(pcmd->right);
-        }
-        else
-        {
-            printf("read end");
-            close(1);
-            dup(p[1]);
-            close(p[0]);
-            close(p[1]);
-            runcmd(pcmd->left);
-        }
         break;
     }
     exit(0);
